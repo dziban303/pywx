@@ -378,6 +378,8 @@ class AlertDetails(BaseWeather):
                     lines.append(str(line))
             lines.append(datetime.datetime.fromtimestamp(alert['expires']).strftime('Expires: %Y-%m-%d %H:%M'))
         return lines
+		
+		
 
 # @register(commands=['radar',])
 # class Radar(BaseWeather):
