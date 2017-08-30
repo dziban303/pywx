@@ -45,10 +45,10 @@ icon_colors = {
     'snow': 'purple',
     'sleet': 'pink',
     'wind': 'royal',
-    'fog': 'silver',
-    'cloudy': 'silver',
-    'partly-cloudy-day': 'silver',
-    'partly-cloudy-night': 'silver',
+    'fog': 'grey',
+    'cloudy': 'grey',
+    'partly-cloudy-day': 'grey',
+    'partly-cloudy-night': 'grey',
     'hail': 'pink',
     'thunderstorm': 'red',
     'tornado': 'red'
@@ -57,7 +57,7 @@ icon_colors = {
 alert_color = lambda a: ([c for m,c in alert_colors if m in a['title'].lower()] or ['orange'])[0]
 alert_colors = (
     ('tornado', 'red'),
-    ('thunder', 'yellow'),
+    ('thunder', 'orange'),
     ('hail', 'pink'),
     ('winter', 'purple'),
     ('freeze', 'purple'),
@@ -69,7 +69,7 @@ alert_colors = (
     ('wind', 'aqua'),
     ('special', 'null'),
 )
-temp_colors = ((-100, 'pink'), (15, 'pink'), (32, 'royal'), (50, 'green'), (65, 'lime'), (75, 'yellow'), (85, 'orange'), (150, 'red'))
+temp_colors = ((-100, 'pink'), (15, 'pink'), (32, 'royal'), (50, 'teal'), (65, 'green'), (75, 'lime'), (85, 'orange'), (150, 'red'))
 
 Airport = collections.namedtuple('Airport', 'airport_id name city country faa icao lat long alt tz dst')
 
@@ -340,7 +340,7 @@ class Alerts(BaseWeather):
         {% if alerts %}
             {{ 'Alerts'|tc }}:
             {% for alert, acolor in alerts %}#{{ loop.index }}: {{ alert.title|c(acolor) }} {% endfor %}
-            ... Use 'alert #' to retrieve alert text
+            ... Use 'alertdetails #' to retrieve alert text
         {% endif %}"""
 
     def context(self, msg):
@@ -350,8 +350,8 @@ class Alerts(BaseWeather):
         return payload
 
 
-@register(commands=['alert',])
-class Alert(BaseWeather):
+@register(commands=['alertdetails',])
+class AlertDetails(BaseWeather):
     private_only = True
 
     def parse_args(self, msg):
@@ -361,9 +361,8 @@ class Alert(BaseWeather):
         return parser.parse_args(msg)
 
     def run(self, msg):
-        payload = super(Alert, self).context(msg)
+        payload = super(AlertDetails, self).context(msg)
         forecast = payload['forecast']
-
         alert_index = payload['args'].alert_index[0]
 
         lines = []
@@ -380,24 +379,22 @@ class Alert(BaseWeather):
             lines.append(datetime.datetime.fromtimestamp(alert['expires']).strftime('Expires: %Y-%m-%d %H:%M'))
         return lines
 
+# @register(commands=['radar',])
+# class Radar(BaseWeather):
+    # template = "{{ name|nc }}: {{ 'Radar'|tc }}: {{ radarlink }} {{ 'Spark Radar'|tc }}: {{ sparkradarlink }}"
 
-
-@register(commands=['radar',])
-class Radar(BaseWeather):
-    template = "{{ name|nc }}: {{ 'Radar'|tc }}: {{ radarlink }} {{ 'Spark Radar'|tc }}: {{ sparkradarlink }}"
-
-    def context(self, msg):
-        payload = super(Radar, self).context(msg)
-        timezone = payload['forecast'].json['timezone']
-        payload['radarlink'] = 'http://www.srh.noaa.gov/ridge2/ridgenew2/?%s' % (urllib.urlencode({
-            'rid': 'NAT', 'pid': 'N0Q', 'lat': payload['lat'], 'lon': payload['lng'], 'frames': 10, 'zoom': 8, 'fs': '1'
-        }))
-        payload['sparkradarlink'] = 'http://weatherspark.com/forecasts/sparkRadar?%s' % (urllib.urlencode({
-            'lat': round(payload['lat'], 3), 'lon': round(payload['lng'] ,3), 'timeZone': timezone, 'unit': payload['units'].dist
-        }))
-        return payload
-
-
+    # def context(self, msg):
+        # payload = super(Radar, self).context(msg)
+        # timezone = payload['forecast'].json['timezone']
+        # payload['radarlink'] = 'http://www.srh.noaa.gov/ridge2/ridgenew2/?%s' % (urllib.urlencode({
+            # 'rid': 'NAT', 'pid': 'N0Q', 'lat': payload['lat'], 'lon': payload['lng'], 'frames': 10, 'zoom': 8, 'fs': '1'
+        # }))
+        # payload['sparkradarlink'] = 'http://weatherspark.com/forecasts/sparkRadar?%s' % (urllib.urlencode({
+            # 'lat': round(payload['lat'], 3), 'lon': round(payload['lng'] ,3), 'timeZone': timezone, 'unit': payload['units'].dist
+        # }))
+        # return payload
+		
+		
 @register(commands=['locate', 'find', 'latlng', 'latlong'])
 class Locate(BaseWeather):
     elevation_api = "https://maps.googleapis.com/maps/api/elevation/json"
@@ -423,16 +420,53 @@ class Locate(BaseWeather):
             payload['elevation_ft'] = meters_to_feet(elevation)
         return payload
 
-
 @register(commands=['eclipse',])
-class Locate(BaseWeather):
+class Eclipse(BaseWeather):
+    eclipse_api = "https://www.timeanddate.com/scripts/astroserver.php"
+    template = """{{ name|nc }}: {{ 'Oct 14 2023 Eclipse'|c('maroon') }}:
+        {{ 'Start'|tc }}: {{ start }} {{ 'Max'|tc }}: {{ max }} {{ 'End'|tc }}: {{ end }}
+        {{ 'Duration'|tc }}: {{ duration }} {{ 'Magnitude'|tc }}: {{ mag }} {{ 'Obscuration'|tc }}: {{ obs }}%
+    """
+
+    def get_eclipse_data(self, latlng):
+        params = {
+            'mode': 'localeclipsejson',
+            'n': '@%s' % ','.join(map(str, latlng)),
+            'iso': '20231014',
+            'zoom': 5,
+            'mobile': 0
+        }
+        try:
+            req = requests.get(self.eclipse_api, params=params)
+            if req.status_code != 200:
+                return None
+            json = req.json()
+            return json
+        except:
+            return None
+
+    def context(self, msg):
+        payload = super(Eclipse, self).context(msg)
+        eclipse = self.get_eclipse_data((payload['lat'], payload['lng']))
+
+        payload['start'] = eclipse['events'][0]['txt'][16:]
+        payload['max'] = eclipse['events'][1]['txt'][16:]
+        payload['end'] = eclipse['events'][2]['txt'][16:]
+        payload['duration'] = eclipse['duration']['fmt']
+        payload['mag'] = eclipse['mag']
+        payload['obs'] = eclipse['obs'] * 100
+        return payload
+		
+		
+@register(commands=['oldeclipse',])
+class OldEclipse(BaseWeather):
     eclipse_api = "https://www.timeanddate.com/scripts/astroserver.php"
     template = """{{ name|nc }}: {{ 'Aug 21 Eclipse'|c('maroon') }}:
         {{ 'Start'|tc }}: {{ start }} {{ 'Max'|tc }}: {{ max }} {{ 'End'|tc }}: {{ end }}
         {{ 'Duration'|tc }}: {{ duration }} {{ 'Magnitude'|tc }}: {{ mag }} {{ 'Obscuration'|tc }}: {{ obs }}%
     """
 
-    def get_eclipse_data(self, latlng):
+    def get_old_eclipse_data(self, latlng):
         params = {
             'mode': 'localeclipsejson',
             'n': '@%s' % ','.join(map(str, latlng)),
@@ -450,8 +484,8 @@ class Locate(BaseWeather):
             return None
 
     def context(self, msg):
-        payload = super(Locate, self).context(msg)
-        eclipse = self.get_eclipse_data((payload['lat'], payload['lng']))
+        payload = super(OldEclipse, self).context(msg)
+        eclipse = self.get_old_eclipse_data((payload['lat'], payload['lng']))
 
         payload['start'] = eclipse['events'][0]['txt'][10:]
         payload['max'] = eclipse['events'][1]['txt'][10:]
