@@ -3,7 +3,7 @@ from . import base
 from registry import register
 
 
-swx_colors = dict(enumerate(['lime', 'yellow', 'yellow', 'orange', 'red', 'red']))
+swx_colors = dict(enumerate(['lime', 'maroon', 'maroon', 'orange', 'red', 'red']))
 scale_format = lambda s,t,st: ('%s%s-%s' % (st, s, t.title()), swx_colors[int(s)]) if t and t != 'none' else ('%s%s' % (st, s), swx_colors[int(s)])
 
 
@@ -20,13 +20,13 @@ class Space(base.Command):
         if radio['Scale']:
             parts.append(scale_format(radio['Scale'], radio['Text'], 'R'))
         if radio['MinorProb']:
-            parts.append(('R1-R2: %s%%' % (radio['MinorProb']), 'yellow'))
+            parts.append(('R1-R2: %s%%' % (radio['MinorProb']), 'maroon'))
         if radio['MajorProb']:
             parts.append(('R3+: %s%%' % (radio['MajorProb']), 'red'))
         if solar['Scale']:
             parts.append(scale_format(solar['Scale'], solar['Text'], 'S'))
         if solar['Prob']:
-            parts.append(('S1+: %s%%' % (radio['MajorProb']), 'yellow'))
+            parts.append(('S1+: %s%%' % (radio['MajorProb']), 'maroon'))
         if geomag['Scale']:
             parts.append(scale_format(geomag['Scale'], geomag['Text'], 'G'))
         return parts
