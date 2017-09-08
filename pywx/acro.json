@@ -22,6 +22,7 @@
     "GPM": "Global Precipitation Model/Global Precipitation Measurement satellite",
     "CIMSS": "Cooperative Institute for Meteorological Satellite Studies, Madison, WI",
     "T&C": "Turks and Caicos Islands, southeast of the Bahamas",
+	"TCI": "Turks and Caicos Islands, southeast of the Bahamas",
     "VORT": "Vorticity. Angular velocity around a point. (https://en.wikipedia.org/wiki/Vorticity)",
     "NEXRAD": "NEXt generation RADar, operated by NWS. (https://en.wikipedia.org/wiki/NEXRAD)",
     "WMO": "World Meteorological Organisation",
@@ -162,5 +163,11 @@
     "KMSY": "The ICAO code for Louis Armstrong International Airport in New Orleans, LA, formerly known as Moisant Field, from which the code is derived.",
     "NBG": "The IATA code for New Orleans Naval Air Station Joint Reserve Base, located in Belle Chasse, LA.",
     "KNBG": "The ICAO code for New Orleans Naval Air Station Joint Reserve Base, located in Belle Chasse, LA.",
-    "INVEST": "A weather system for which an RSMC is interested in collecting specialized data sets (e.g., microwave imagery) and/or running model guidance. The designation of an invest does not correspond to any particular likelihood of development into a tropical cyclone."
+    "INVEST": "A weather system for which an RSMC is interested in collecting specialized data sets (e.g., microwave imagery) and/or running model guidance. The designation of an invest does not correspond to any particular likelihood of development into a tropical cyclone.",
+	"ARCHER": "Automated Rotational Center Hurricane Eye Retrieval.",
+	"CME": "Coronal Mass Ejection. A solar weather term meaning billions of tons of particles thrown off the sun. Can cause auroral displays, or even damage to satellites and the terrestrial power grid.",
+	"EPS": "Ensemble Prediction System. The ECMWF (Euro) ensemble model.",
+	"CHARLIE FOX": "Navyspeak for clusterfuck.",
+	"HMON": "Hurricanes in a Multi-scale Ocean-coupled Non-hydrostatic model.",
+	"ACE": "Accumulated Cyclone Energy"
 }
