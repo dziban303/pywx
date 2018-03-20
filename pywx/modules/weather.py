@@ -16,7 +16,6 @@ from jinja2 import contextfilter
 from registry import register
 
 
-geoloc = GoogleV3()
 
 epoch_tz_dt = lambda ts, tz='UTC': datetime.datetime.fromtimestamp(ts, tz=pytz.utc).astimezone(pytz.timezone(tz))
 first_greater_selector = lambda i, l: [r for c, r in l if c >= i][0]
@@ -95,6 +94,7 @@ class BaseWeather(base.Command):
         self.airport_lookup = self.load_airports()
         db = dataset.connect(config['database'])
         self.usertable = db['users']
+        self.geoloc = GoogleV3(api_key=config['youtube_key'])
 
     def load_filters(self):
         super(BaseWeather, self).load_filters()
@@ -106,6 +106,9 @@ class BaseWeather(base.Command):
 
     def parse_args(self, msg):
         parser = base.IRCArgumentParser()
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('-F', action="store_true")
+        group.add_argument('-C', action="store_true")
         parser.add_argument('location', type=str, default=None, nargs='*')
         return parser.parse_args(msg)
 
@@ -154,7 +157,7 @@ class BaseWeather(base.Command):
         llmatch = re.compile(r'([0-9.-]+),([0-9.-]+)').match(location.lower())
         if llmatch:
             lat, lng = llmatch.groups()
-            loc = geoloc.reverse((lat, lng), exactly_one=True)
+            loc = self.geoloc.reverse((lat, lng), exactly_one=True)
             name = loc.address
             match = True
 
@@ -173,11 +176,15 @@ class BaseWeather(base.Command):
 
         if not match:
             try:
-                loc = geoloc.geocode(location, exactly_one=True)
+                loc = self.geoloc.geocode(location, exactly_one=True)
                 name = loc.address
                 lat = loc.latitude
                 lng = loc.longitude
-            except:
+            except Exception, e:
+                import ipdb
+                ipdb.set_trace()
+
+
                 raise base.ArgumentError('Location not found')
         self.usertable.upsert(dict(user=username, place=name, latitude=lat, longitude=lng), ['user'])
         return name, lat, lng
@@ -185,7 +192,11 @@ class BaseWeather(base.Command):
     def context(self, msg):
         args = self.parse_args(msg)
         name, lat, lng = self.match_location(msg['sender'], args.location)
-        forecast = forecastio.load_forecast(self.config['forecast_io_secret'], float(lat), float(lng))
+        if hasattr(args, 'C') and hasattr(args, 'F'):
+            unit_type = 'si' if args.C else 'us' if args.F else 'auto'
+        else:
+            unit_type = 'auto'
+        forecast = forecastio.load_forecast(self.config['forecast_io_secret'], float(lat), float(lng), units=unit_type)
         units = self.get_units(forecast.json['flags']['units'])
         payload = {
             'name': name,
@@ -340,7 +351,7 @@ class Alerts(BaseWeather):
         {% if alerts %}
             {{ 'Alerts'|tc }}:
             {% for alert, acolor in alerts %}#{{ loop.index }}: {{ alert.title|c(acolor) }} {% endfor %}
-            ... Use 'alertdetails #' to retrieve alert text
+            ... Use 'alert #' to retrieve alert text
         {% endif %}"""
 
     def context(self, msg):
@@ -350,8 +361,8 @@ class Alerts(BaseWeather):
         return payload
 
 
-@register(commands=['alertdetails',])
-class AlertDetails(BaseWeather):
+@register(commands=['alert',])
+class Alert(BaseWeather):
     private_only = True
 
     def parse_args(self, msg):
@@ -361,8 +372,12 @@ class AlertDetails(BaseWeather):
         return parser.parse_args(msg)
 
     def run(self, msg):
-        payload = super(AlertDetails, self).context(msg)
+        try:
+            payload = super(Alert, self).context(msg)
+        except base.ArgumentError:
+            return ['piss']
         forecast = payload['forecast']
+
         alert_index = payload['args'].alert_index[0]
 
         lines = []
@@ -378,25 +393,31 @@ class AlertDetails(BaseWeather):
                     lines.append(str(line))
             lines.append(datetime.datetime.fromtimestamp(alert['expires']).strftime('Expires: %Y-%m-%d %H:%M'))
         return lines
-		
-		
 
-# @register(commands=['radar',])
-# class Radar(BaseWeather):
-    # template = "{{ name|nc }}: {{ 'Radar'|tc }}: {{ radarlink }} {{ 'Spark Radar'|tc }}: {{ sparkradarlink }}"
 
-    # def context(self, msg):
-        # payload = super(Radar, self).context(msg)
-        # timezone = payload['forecast'].json['timezone']
-        # payload['radarlink'] = 'http://www.srh.noaa.gov/ridge2/ridgenew2/?%s' % (urllib.urlencode({
-            # 'rid': 'NAT', 'pid': 'N0Q', 'lat': payload['lat'], 'lon': payload['lng'], 'frames': 10, 'zoom': 8, 'fs': '1'
-        # }))
-        # payload['sparkradarlink'] = 'http://weatherspark.com/forecasts/sparkRadar?%s' % (urllib.urlencode({
-            # 'lat': round(payload['lat'], 3), 'lon': round(payload['lng'] ,3), 'timeZone': timezone, 'unit': payload['units'].dist
-        # }))
-        # return payload
-		
-		
+
+@register(commands=['radar',])
+class Radar(BaseWeather):
+    template = "{{ name|nc }}: {{ 'Radar'|tc }}: {{ radarlink }} {{ 'Spark Radar'|tc }}: {{ sparkradarlink }}"
+
+    def context(self, msg):
+        payload = super(Radar, self).context(msg)
+        timezone = payload['forecast'].json['timezone']
+        payload['radarlink'] = 'http://www.srh.noaa.gov/ridge2/ridgenew2/?%s' % (urllib.urlencode({
+            'rid': 'NAT', 'pid': 'N0Q', 'lat': payload['lat'], 'lon': payload['lng'], 'frames': 10, 'zoom': 8, 'fs': '1'
+        }))
+        payload['sparkradarlink'] = 'http://weatherspark.com/forecasts/sparkRadar?%s' % (urllib.urlencode({
+            'lat': round(payload['lat'], 3), 'lon': round(payload['lng'] ,3), 'timeZone': timezone, 'unit': payload['units'].dist
+        }))
+        return payload
+
+
+
+
+
+
+
+
 @register(commands=['locate', 'find', 'latlng', 'latlong'])
 class Locate(BaseWeather):
     elevation_api = "https://maps.googleapis.com/maps/api/elevation/json"
@@ -422,6 +443,7 @@ class Locate(BaseWeather):
             payload['elevation_ft'] = meters_to_feet(elevation)
         return payload
 
+
 @register(commands=['eclipse',])
 class Eclipse(BaseWeather):
     eclipse_api = "https://www.timeanddate.com/scripts/astroserver.php"
@@ -434,6 +456,7 @@ class Eclipse(BaseWeather):
         params = {
             'mode': 'localeclipsejson',
             'n': '@%s' % ','.join(map(str, latlng)),
+
             'iso': '20231014',
             'zoom': 5,
             'mobile': 0
@@ -448,7 +471,8 @@ class Eclipse(BaseWeather):
             return None
 
     def context(self, msg):
-        payload = super(Eclipse, self).context(msg)
+        payload = super(Locate, self).context(msg)
+        #payload = super(Eclipse, self).context(msg)
         eclipse = self.get_eclipse_data((payload['lat'], payload['lng']))
 
         payload['start'] = eclipse['events'][0]['txt'][16:]
