@@ -78,7 +78,7 @@
     "INVEST": "A weather system for which an RSMC is interested in collecting specialized data sets (e.g., microwave imagery) and/or running model guidance. The designation of an invest does not correspond to any particular likelihood of development into a tropical cyclone.",
     "IR": "Infrared satellite imagery",
     "ITCZ": "Inter-Tropical Convergence Zone",
-	"J": "Juliett time, the NATO term for local time, whatever timezone that may be."
+	"J": "Juliett time, the NATO term for local time, whatever timezone that may be",
     "JMA": "Japan Meterological Agency (RSMC for the Western Pacific)",
     "JTWC": "Joint Typhoon Warning Center (issues tropical cyclone warnings in the Northwest and Southern Pacific, and Indian Ocean)",
     "KIAH": "The ICAO airport code for George Bush Intercontinental Airport in Houston, Texas.",

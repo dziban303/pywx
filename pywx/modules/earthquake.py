@@ -80,7 +80,7 @@ class EarthquakeAlerter(Earthquake):
         raise base.NoMessage
 
 
-@register(commands=['lastquake',])
+@register(commands=['lastquake','quake'])
 class LastQuake(Earthquake):
     usgs_api = 'http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson'
 

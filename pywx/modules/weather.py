@@ -235,7 +235,7 @@ class HourlyForecast(BaseWeather):
         forecast = payload['forecast']
         units = payload['units']
         timezone = pytz.timezone(forecast.json['timezone'])
-        local_tz = pytz.timezone('US/Eastern')
+        local_tz = pytz.timezone('US/Central')
 
         hourly = forecast.hourly().data[:12]
         hourlies = []
@@ -416,8 +416,6 @@ class Radar(BaseWeather):
 
 
 
-
-
 @register(commands=['locate', 'find', 'latlng', 'latlong'])
 class Locate(BaseWeather):
     elevation_api = "https://maps.googleapis.com/maps/api/elevation/json"
@@ -443,8 +441,7 @@ class Locate(BaseWeather):
             payload['elevation_ft'] = meters_to_feet(elevation)
         return payload
 
-
-@register(commands=['eclipse',])
+@register(commands=['eclipse','nexteclipse'])
 class Eclipse(BaseWeather):
     eclipse_api = "https://www.timeanddate.com/scripts/astroserver.php"
     template = """{{ name|nc }}: {{ 'Oct 14 2023 Eclipse'|c('maroon') }}:
@@ -456,7 +453,6 @@ class Eclipse(BaseWeather):
         params = {
             'mode': 'localeclipsejson',
             'n': '@%s' % ','.join(map(str, latlng)),
-
             'iso': '20231014',
             'zoom': 5,
             'mobile': 0
@@ -471,8 +467,8 @@ class Eclipse(BaseWeather):
             return None
 
     def context(self, msg):
-        payload = super(Locate, self).context(msg)
-        #payload = super(Eclipse, self).context(msg)
+        #payload = super(Locate, self).context(msg)
+        payload = super(Eclipse, self).context(msg)
         eclipse = self.get_eclipse_data((payload['lat'], payload['lng']))
 
         payload['start'] = eclipse['events'][0]['txt'][16:]
@@ -484,7 +480,7 @@ class Eclipse(BaseWeather):
         return payload
 		
 		
-@register(commands=['oldeclipse',])
+@register(commands=['oldeclipse','lasteclipse'])
 class OldEclipse(BaseWeather):
     eclipse_api = "https://www.timeanddate.com/scripts/astroserver.php"
     template = """{{ name|nc }}: {{ 'Aug 21 Eclipse'|c('maroon') }}:
