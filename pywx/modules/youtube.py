@@ -6,7 +6,6 @@ from .base import ParserCommand
 from registry import register_parser
 
 
-
 def pretty_iso_duration(iso_duration):
     dd = {}
     num = 0
@@ -71,3 +70,4 @@ class YoutubeParser(ParserCommand):
             duration = pretty_iso_duration(video['contentDetails']['duration'])
             lines.append("YOUTUBE: %s [%s]" % (title, duration))
         return lines
+
